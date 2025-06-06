@@ -1,0 +1,25 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+  app:
+    build: .
+    depends_on:
+      - db
+    environment:
+      APP_DATABASE_DRIVER: ${APP_DATABASE_DRIVER}
+      APP_DATABASE_DSN: ${APP_DATABASE_DSN}
+      APP_STORAGE_BASEPATH: ${APP_STORAGE_BASEPATH}
+      APP_SERVER_ADDRESS: ${APP_SERVER_ADDRESS}
+    volumes:
+      - ./config.yaml:/app/config.yaml
+      - ./templates:${APP_STORAGE_BASEPATH}
+    command: ["./report"]
+volumes:
+  db_data:
