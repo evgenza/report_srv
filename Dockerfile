@@ -10,4 +10,5 @@ RUN go build -o report ./cmd/report_srv
 FROM alpine
 WORKDIR /app
 COPY --from=build /src/report .
+COPY config.yaml ./config.yaml
 CMD ["./report"]

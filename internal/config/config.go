@@ -1,73 +1,51 @@
 package config
 
 import (
-	"bufio"
-	"os"
-	"strings"
+	"github.com/spf13/viper"
 )
 
-// DB содержит настройки для подключения к базе данных.
+// Server содержит настройки HTTP-сервера.
+type Server struct {
+	Address string `mapstructure:"address"`
+}
+
+// DB содержит параметры подключения к БД.
 type DB struct {
-	Driver string // например "postgres", "mysql", "sqlite3"
-	DSN    string // полная строка подключения к БД
+	Driver string `mapstructure:"driver"`
+	DSN    string `mapstructure:"dsn"`
 }
 
-// Storage описывает местоположение шаблонов.
+// Storage описывает путь к шаблонам.
 type Storage struct {
-	BasePath string // путь к каталогу или бакету с шаблонами
+	BasePath string `mapstructure:"basepath"`
 }
 
-// Config содержит все необходимые сервису настройки.
+// Config объединяет все разделы конфигурации.
 type Config struct {
-	DB      DB
-	Storage Storage
+	Server  Server  `mapstructure:"server"`
+	DB      DB      `mapstructure:"database"`
+	Storage Storage `mapstructure:"storage"`
 }
 
-// loadFromFile читает файл .env и устанавливает переменные окружения,
-// если они ещё не заданы.
-func loadFromFile() {
-	f, err := os.Open(".env")
-	if err != nil {
-		return
-	}
-	defer f.Close()
+// Load читает конфигурацию из файла и окружения с помощью viper.
+func Load() (Config, error) {
+	viper.SetConfigName("config")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath(".")
+	viper.SetEnvPrefix("APP")
+	viper.AutomaticEnv()
 
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-		kv := strings.SplitN(line, "=", 2)
-		if len(kv) != 2 {
-			continue
-		}
-		key := strings.TrimSpace(kv[0])
-		val := strings.TrimSpace(kv[1])
-		if _, ok := os.LookupEnv(key); !ok {
-			os.Setenv(key, val)
-		}
-	}
-}
+	// Значения по умолчанию
+	viper.SetDefault("server.address", ":8080")
 
-// Load считывает настройки из переменных окружения.
-// Перед чтением переменных предпринимается попытка загрузить их из файла .env,
-// чтобы локальная конфигурация могла использовать единый источник данных.
-//
-//	DB_DRIVER   - название SQL‑драйвера
-//	DB_DSN      - строка подключения к базе данных
-//	S3_BASEPATH - путь к хранилищу шаблонов
-//
-// Переменные окружения необязательны: если они не заданы, используются нулевые значения.
-func Load() Config {
-	loadFromFile()
-	return Config{
-		DB: DB{
-			Driver: os.Getenv("DB_DRIVER"),
-			DSN:    os.Getenv("DB_DSN"),
-		},
-		Storage: Storage{
-			BasePath: os.Getenv("S3_BASEPATH"),
-		},
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+			return Config{}, err
+		}
 	}
+	var cfg Config
+	if err := viper.Unmarshal(&cfg); err != nil {
+		return Config{}, err
+	}
+	return cfg, nil
 }

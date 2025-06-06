@@ -13,11 +13,13 @@ services:
     depends_on:
       - db
     environment:
-      DB_DRIVER: ${DB_DRIVER}
-      DB_DSN: ${DB_DSN}
-      S3_BASEPATH: ${S3_BASEPATH}
+      APP_DATABASE_DRIVER: ${APP_DATABASE_DRIVER}
+      APP_DATABASE_DSN: ${APP_DATABASE_DSN}
+      APP_STORAGE_BASEPATH: ${APP_STORAGE_BASEPATH}
+      APP_SERVER_ADDRESS: ${APP_SERVER_ADDRESS}
     volumes:
-      - ./templates:${S3_BASEPATH}
+      - ./config.yaml:/app/config.yaml
+      - ./templates:${APP_STORAGE_BASEPATH}
     command: ["./report"]
 volumes:
   db_data:
