@@ -2,7 +2,7 @@
 
 This project demonstrates an initial Go project structure following the ideas of Clean Architecture and DDD.
 
-The service is intended to generate reports based on Word or XLSX templates filled with the results of SQL queries. It can connect to different databases by specifying the SQL driver and DSN in the configuration.
+The service is intended to generate reports based on Word or XLSX templates filled with the results of SQL queries. Templates are stored in an S3 bucket (represented here by a local directory) and metadata describing which template and queries belong to a report are kept in the database. The service can connect to different databases by specifying the SQL driver and DSN in the configuration.
 
 ```
 cmd/                - application entry points

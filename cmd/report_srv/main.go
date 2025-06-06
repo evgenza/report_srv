@@ -6,6 +6,7 @@ import (
 
 	"report_srv/internal/config"
 	sqlinfra "report_srv/internal/infrastructure/sql"
+	"report_srv/internal/infrastructure/storage"
 	"report_srv/internal/infrastructure/template"
 	"report_srv/internal/usecase"
 )
@@ -27,9 +28,11 @@ func main() {
 	svc := usecase.ReportService{
 		Executor: db,
 		Filler:   template.XLSXFiller{}, // or DOCXFiller depending on template
+		Storage:  storage.S3Storage{BasePath: "./templates"},
+		Reports:  sqlinfra.ReportRepository{DB: db.DB},
 	}
 
-	if _, err := svc.Generate(context.Background(), "template.xlsx", []string{"SELECT 1"}); err != nil {
+	if _, err := svc.Generate(context.Background(), "sample-report"); err != nil {
 		log.Fatal(err)
 	}
 }
