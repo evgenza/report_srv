@@ -1,16 +1,64 @@
 version: '3.8'
 
 services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - APP_SERVER_ADDRESS=:8080
+      - APP_SERVER_DEBUG=true
+      - APP_DATABASE_DRIVER=postgres
+      - APP_DATABASE_DSN=postgres://report_user:report_password@postgres:5432/report_db?sslmode=disable
+      - APP_STORAGE_TYPE=s3
+      - APP_STORAGE_S3_REGION=us-east-1
+      - APP_STORAGE_S3_BUCKET=report-srv-bucket
+      - APP_STORAGE_S3_ENDPOINT=http://localstack:4566
+      - APP_STORAGE_S3_ACCESS_KEY=test
+      - APP_STORAGE_S3_SECRET_KEY=test
+      - APP_LOGGING_LEVEL=debug
+      - APP_LOGGING_FORMAT=text
+    depends_on:
+      postgres:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      - ./templates:/app/templates:ro
+      - app_logs:/app/logs
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - report-network
+
   postgres:
     image: postgres:15-alpine
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: pass
-      POSTGRES_DB: dbname
+      - POSTGRES_DB=report_db
+      - POSTGRES_USER=report_user
+      - POSTGRES_PASSWORD=report_password
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U report_user -d report_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - report-network
 
   localstack:
     image: localstack/localstack:latest
@@ -21,31 +69,47 @@ services:
       - DEBUG=1
       - DATA_DIR=/tmp/localstack/data
       - DOCKER_HOST=unix:///var/run/docker.sock
+      - HOST_TMP_FOLDER=${TMPDIR:-/tmp}/localstack
     volumes:
       - localstack_data:/tmp/localstack
-      - "/var/run/docker.sock:/var/run/docker.sock"
+      - ./localstack-init.sh:/etc/localstack/init/ready.d/init-aws.sh:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - report-network
 
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+  # Опционально: Redis для кэширования
+  redis:
+    image: redis:7-alpine
     ports:
-      - "8080:8080"
-    environment:
-      - APP_DATABASE_DRIVER=postgres
-      - APP_DATABASE_DSN=postgres://user:pass@postgres:5432/dbname?sslmode=disable
-      - APP_STORAGE_TYPE=s3
-      - APP_STORAGE_S3_REGION=us-east-1
-      - APP_STORAGE_S3_BUCKET=report-srv-bucket
-      - APP_STORAGE_S3_ENDPOINT=http://localstack:4566
-      - APP_STORAGE_S3_ACCESS_KEY=test
-      - APP_STORAGE_S3_SECRET_KEY=test
-      - APP_SERVER_ADDRESS=:8080
-      - APP_SERVER_DEBUG=true
-    depends_on:
-      - postgres
-      - localstack
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - report-network
+    command: redis-server --appendonly yes
 
 volumes:
   postgres_data:
+    driver: local
   localstack_data:
+    driver: local
+  redis_data:
+    driver: local
+  app_logs:
+    driver: local
+
+networks:
+  report-network:
+    driver: bridge

@@ -2,86 +2,122 @@ package main
 
 import (
 	"context"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
+	"report_srv/internal/config"
 	"report_srv/internal/database"
 	"report_srv/internal/server"
 	"report_srv/internal/service"
 	"report_srv/internal/storage"
 
+	"github.com/sirupsen/logrus"
 	"go.uber.org/fx"
 )
 
 func main() {
+	// Загружаем конфигурацию
+	cfg, err := config.Load()
+	if err != nil {
+		logrus.WithError(err).Fatal("Failed to load configuration")
+	}
+
+	// Настраиваем логирование
+	logger := setupLogger(cfg.Logging)
+	logger.WithField("config", cfg.String()).Info("Starting report service")
+
 	app := fx.New(
-		// Provide dependencies
+		// Предоставляем зависимости
 		fx.Provide(
-			// Database
-			func() *database.Config {
-				return &database.Config{
-					Driver: os.Getenv("APP_DATABASE_DRIVER"),
-					DSN:    os.Getenv("APP_DATABASE_DSN"),
-					Debug:  os.Getenv("APP_SERVER_DEBUG") == "true",
-				}
-			},
+			func() config.Config { return cfg },
+			func() *logrus.Logger { return logger },
 			database.NewDatabase,
-
-			// Storage
-			func() *storage.S3Config {
-				return &storage.S3Config{
-					Region:    os.Getenv("APP_STORAGE_S3_REGION"),
-					Bucket:    os.Getenv("APP_STORAGE_S3_BUCKET"),
-					Endpoint:  os.Getenv("APP_STORAGE_S3_ENDPOINT"),
-					AccessKey: os.Getenv("APP_STORAGE_S3_ACCESS_KEY"),
-					SecretKey: os.Getenv("APP_STORAGE_S3_SECRET_KEY"),
-				}
-			},
-			storage.NewS3Storage,
-
-			// Server
-			func() *server.Config {
-				return &server.Config{
-					Address: os.Getenv("APP_SERVER_ADDRESS"),
-					Debug:   os.Getenv("APP_SERVER_DEBUG") == "true",
-				}
-			},
-			server.NewServer,
-
-			// Service
+			storage.NewStorageFromConfig,
 			service.NewReportService,
+			server.NewServer,
 		),
 
-		// Invoke startup
+		// Запускаем приложение
 		fx.Invoke(func(
-			db *database.Config,
 			srv *server.Server,
+			logger *logrus.Logger,
 			lc fx.Lifecycle,
 		) {
 			lc.Append(fx.Hook{
 				OnStart: func(ctx context.Context) error {
-					// Start the server
+					logger.Info("Starting HTTP server")
 					go func() {
-						if err := srv.Start(db.DSN); err != nil {
-							log.Fatalf("Failed to start server: %v", err)
+						if err := srv.Start(cfg.Server.Address); err != nil {
+							logger.WithError(err).Error("HTTP server stopped")
 						}
 					}()
-
-					// Wait for interrupt signal
-					quit := make(chan os.Signal, 1)
-					signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-					<-quit
-
 					return nil
 				},
 				OnStop: func(ctx context.Context) error {
-					return nil
+					logger.Info("Shutting down HTTP server")
+					return srv.Shutdown(ctx)
 				},
 			})
 		}),
 	)
 
-	app.Run()
+	// Настраиваем graceful shutdown
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Слушаем сигналы завершения
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	// Запускаем приложение в отдельной горутине
+	go func() {
+		if err := app.Start(ctx); err != nil {
+			logger.WithError(err).Fatal("Failed to start application")
+		}
+	}()
+
+	// Ждем сигнал завершения
+	<-quit
+	logger.Info("Received shutdown signal")
+
+	// Создаем контекст с таймаутом для graceful shutdown
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer shutdownCancel()
+
+	// Останавливаем приложение
+	if err := app.Stop(shutdownCtx); err != nil {
+		logger.WithError(err).Error("Error during shutdown")
+	}
+
+	logger.Info("Report service stopped")
+}
+
+// setupLogger настраивает логгер согласно конфигурации
+func setupLogger(logCfg config.Logging) *logrus.Logger {
+	logger := logrus.New()
+
+	// Устанавливаем уровень логирования
+	level, err := logrus.ParseLevel(logCfg.Level)
+	if err != nil {
+		level = logrus.InfoLevel
+		logger.WithError(err).Warn("Invalid log level, using info")
+	}
+	logger.SetLevel(level)
+
+	// Устанавливаем формат вывода
+	switch logCfg.Format {
+	case "json":
+		logger.SetFormatter(&logrus.JSONFormatter{
+			TimestampFormat: time.RFC3339,
+		})
+	default:
+		logger.SetFormatter(&logrus.TextFormatter{
+			FullTimestamp:   true,
+			TimestampFormat: time.RFC3339,
+		})
+	}
+
+	return logger
 }

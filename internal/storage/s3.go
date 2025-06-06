@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"path"
@@ -10,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
 
 // S3Config holds the S3 configuration
@@ -114,4 +116,22 @@ func (s *S3Storage) GetURL(ctx context.Context, key string) (string, error) {
 // JoinPath joins path elements for S3
 func (s *S3Storage) JoinPath(elem ...string) string {
 	return path.Join(elem...)
+}
+
+// Exists checks if a file exists in S3
+func (s *S3Storage) Exists(ctx context.Context, key string) (bool, error) {
+	_, err := s.client.HeadObject(ctx, &s3.HeadObjectInput{
+		Bucket: aws.String(s.bucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		// Проверяем, является ли ошибка "not found"
+		var notFound *types.NoSuchKey
+		if errors.As(err, &notFound) {
+			return false, nil
+		}
+		return false, fmt.Errorf("failed to check file existence: %w", err)
+	}
+
+	return true, nil
 }
