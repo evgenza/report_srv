@@ -7,12 +7,12 @@ import (
 	"report_srv/internal/domain/report"
 )
 
-// ReportRepository retrieves report metadata from the database.
+// ReportRepository получает метаданные отчётов из базы данных.
 type ReportRepository struct {
 	DB *sql.DB
 }
 
-// GetByID loads a report by its ID.
+// GetByID загружает отчёт по его идентификатору.
 func (r ReportRepository) GetByID(ctx context.Context, id string) (report.Report, error) {
 	var rep report.Report
 	err := r.DB.QueryRowContext(ctx, `SELECT id, template_type, template_key FROM reports WHERE id = $1`, id).

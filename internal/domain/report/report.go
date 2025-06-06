@@ -1,6 +1,6 @@
 package report
 
-// TemplateType represents the type of supported templates.
+// TemplateType обозначает поддерживаемые типы шаблонов.
 type TemplateType int
 
 const (
@@ -8,7 +8,7 @@ const (
 	TemplateDOCX
 )
 
-// Report holds information about a report template.
+// Report содержит данные о шаблоне отчёта.
 type Report struct {
 	ID          string
 	Template    TemplateType

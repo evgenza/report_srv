@@ -1,8 +1,8 @@
 package query
 
-// Query encapsulates SQL statement that should be executed to fill the report.
+// Query описывает SQL-запрос, который нужно выполнить для заполнения отчёта.
 type Query struct {
-    ID    string
-    SQL   string
-    Params []any
+	ID     string
+	SQL    string
+	Params []any
 }

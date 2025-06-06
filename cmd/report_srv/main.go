@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	// Load configuration from environment variables.
+	// Загружаем настройки из переменных окружения.
 	cfg := config.Load()
 
 	db, err := sqlinfra.Open(cfg.DB.Driver, cfg.DB.DSN)
@@ -23,7 +23,7 @@ func main() {
 
 	svc := usecase.ReportService{
 		Executor: db,
-		Filler:   template.XLSXFiller{}, // or DOCXFiller depending on template
+		Filler:   template.XLSXFiller{}, // либо DOCXFiller в зависимости от шаблона
 		Storage:  storage.S3Storage{BasePath: cfg.Storage.BasePath},
 		Reports:  sqlinfra.ReportRepository{DB: db.DB},
 	}

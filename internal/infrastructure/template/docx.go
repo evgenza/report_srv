@@ -1,10 +1,10 @@
 package template
 
-// DOCXFiller implements TemplateFiller for docx templates.
+// DOCXFiller реализует TemplateFiller для шаблонов docx.
 type DOCXFiller struct{}
 
-// Fill returns contents of the template without modification.
+// Fill возвращает содержимое шаблона без изменений.
 func (DOCXFiller) Fill(tmpl []byte, data []map[string]any) ([]byte, error) {
-	// TODO: implement real docx template filling
+	// TODO: реализовать заполнение шаблона docx
 	return tmpl, nil
 }

@@ -1,6 +1,6 @@
 package repository
 
-// QueryExecutor executes SQL queries and returns resulting rows.
+// QueryExecutor выполняет SQL-запросы и возвращает строки результата.
 type QueryExecutor interface {
-    Execute(query string, args ...any) ([]map[string]any, error)
+	Execute(query string, args ...any) ([]map[string]any, error)
 }

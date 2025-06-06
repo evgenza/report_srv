@@ -4,12 +4,12 @@ import (
 	"database/sql"
 )
 
-// DB wraps *sql.DB to satisfy the QueryExecutor interface.
+// DB оборачивает *sql.DB и реализует интерфейс QueryExecutor.
 type DB struct {
 	*sql.DB
 }
 
-// Open creates a new DB connection using provided driver and DSN.
+// Open создаёт новое подключение к базе данных с указанным драйвером и DSN.
 func Open(driver, dsn string) (*DB, error) {
 	db, err := sql.Open(driver, dsn)
 	if err != nil {
@@ -22,7 +22,7 @@ func Open(driver, dsn string) (*DB, error) {
 	return &DB{DB: db}, nil
 }
 
-// Execute executes a query and returns rows as a slice of map.
+// Execute выполняет запрос и возвращает строки в виде среза map.
 func (d *DB) Execute(query string, args ...any) ([]map[string]any, error) {
 	rows, err := d.Query(query, args...)
 	if err != nil {

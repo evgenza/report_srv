@@ -2,30 +2,30 @@ package config
 
 import "os"
 
-// DB holds settings required to connect to the database.
+// DB содержит настройки для подключения к базе данных.
 type DB struct {
-	Driver string // e.g. "postgres", "mysql", "sqlite3"
-	DSN    string // complete database connection string
+	Driver string // например "postgres", "mysql", "sqlite3"
+	DSN    string // полная строка подключения к БД
 }
 
-// Storage describes where templates are stored.
+// Storage описывает местоположение шаблонов.
 type Storage struct {
-	BasePath string // path to the local directory or bucket used for templates
+	BasePath string // путь к каталогу или бакету с шаблонами
 }
 
-// Config contains all configuration required by the service.
+// Config содержит все необходимые сервису настройки.
 type Config struct {
 	DB      DB
 	Storage Storage
 }
 
-// Load reads configuration from environment variables.
+// Load считывает настройки из переменных окружения.
 //
-//	DB_DRIVER   - SQL driver name
-//	DB_DSN      - database connection string
-//	S3_BASEPATH - path to the template storage location
+//	DB_DRIVER   - название SQL‑драйвера
+//	DB_DSN      - строка подключения к базе данных
+//	S3_BASEPATH - путь к хранилищу шаблонов
 //
-// Environment variables are optional; zero values will be used if they are not set.
+// Переменные окружения необязательны: если они не заданы, используются нулевые значения.
 func Load() Config {
 	return Config{
 		DB: DB{

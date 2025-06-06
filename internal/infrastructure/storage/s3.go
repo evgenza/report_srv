@@ -5,13 +5,13 @@ import (
 	"path/filepath"
 )
 
-// S3Storage is a placeholder implementation that reads templates from a local directory
-// representing an S3 bucket. In a real implementation this would use the AWS SDK.
+// S3Storage — упрощённая реализация, читающая шаблоны из локальной директории,
+// которая имитирует бакет S3. В реальном проекте здесь использовался бы AWS SDK.
 type S3Storage struct {
 	BasePath string
 }
 
-// Download returns the contents of the object identified by key.
+// Download возвращает содержимое объекта с указанным ключом.
 func (s S3Storage) Download(key string) ([]byte, error) {
 	return ioutil.ReadFile(filepath.Join(s.BasePath, key))
 }

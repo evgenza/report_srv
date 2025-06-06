@@ -1,27 +1,32 @@
 # report_srv
 
-This project demonstrates an initial Go project structure following the ideas of Clean Architecture and DDD.
+Этот проект демонстрирует начальную структуру Go-приложения, построенную по принципам
+"Чистой архитектуры" и DDD.
 
-The service is intended to generate reports based on Word or XLSX templates filled with the results of SQL queries. Templates are stored in an S3 bucket (represented here by a local directory) and metadata describing which template and queries belong to a report are kept in the database. The service can connect to different databases by specifying the SQL driver and DSN in the configuration.
+Сервис предназначен для генерации отчётов на основе шаблонов Word или XLSX,
+которые заполняются результатами выполнения SQL‑запросов. Шаблоны хранятся в
+бакете S3 (здесь его роль выполняет локальная директория), а метаданные о том,
+какой шаблон и какие запросы относятся к отчёту, хранятся в базе данных.
+Подключение к различным СУБД осуществляется через указание SQL‑драйвера и DSN в настройках.
 
 ```
-cmd/                - application entry points
+cmd/                - точки входа приложения
 internal/
-  config/           - configuration entities
-  domain/           - domain models
-  infrastructure/   - frameworks and external integrations
-  interface/        - delivery mechanisms (e.g. HTTP handlers)
-  usecase/          - application business logic
+  config/           - сущности конфигурации
+  domain/           - доменные модели
+  infrastructure/   - внешние интеграции
+  interface/        - транспортный слой (например HTTP)
+  usecase/          - бизнес‑логика приложения
 ```
 
-Configuration is provided via environment variables:
+Настройки передаются через переменные окружения:
 
 ```
-DB_DRIVER    - SQL driver name (e.g. postgres, mysql)
-DB_DSN       - connection string for the database
-S3_BASEPATH  - path to the directory representing the template bucket
+DB_DRIVER    - название SQL‑драйвера (например postgres, mysql)
+DB_DSN       - строка подключения к базе данных
+S3_BASEPATH  - путь к директории, выступающей в роли бакета с шаблонами
 ```
 
-This allows the service to work with different SQL engines and storage locations.
+Это позволяет использовать сервис с разными СУБД и хранилищами шаблонов.
 
-The current implementation contains only stubs and placeholders.
+Текущая реализация содержит только заглушки и примерный каркас.

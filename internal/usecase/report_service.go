@@ -6,7 +6,7 @@ import (
 	"report_srv/internal/usecase/repository"
 )
 
-// ReportService generates reports using provided template and SQL queries.
+// ReportService генерирует отчёты, используя шаблон и SQL-запросы.
 type ReportService struct {
 	Executor repository.QueryExecutor
 	Filler   repository.TemplateFiller
@@ -14,7 +14,7 @@ type ReportService struct {
 	Reports  repository.ReportRepository
 }
 
-// Generate executes queries and fills template.
+// Generate выполняет запросы и заполняет шаблон.
 func (s *ReportService) Generate(ctx context.Context, reportID string) ([]byte, error) {
 	rep, err := s.Reports.GetByID(ctx, reportID)
 	if err != nil {
