@@ -14,7 +14,14 @@ internal/
   usecase/          - application business logic
 ```
 
-Configuration allows specifying the database driver and DSN so the service can
-work with various SQL engines (e.g. PostgreSQL, MySQL, SQLite).
+Configuration is provided via environment variables:
+
+```
+DB_DRIVER    - SQL driver name (e.g. postgres, mysql)
+DB_DSN       - connection string for the database
+S3_BASEPATH  - path to the directory representing the template bucket
+```
+
+This allows the service to work with different SQL engines and storage locations.
 
 The current implementation contains only stubs and placeholders.

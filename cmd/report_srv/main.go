@@ -12,14 +12,10 @@ import (
 )
 
 func main() {
-	// Example configuration. In real application this would be loaded from
-	// file or environment.
-	cfg := config.Config{
-		Driver: "postgres",
-		DSN:    "postgres://user:pass@localhost/db?sslmode=disable",
-	}
+	// Load configuration from environment variables.
+	cfg := config.Load()
 
-	db, err := sqlinfra.Open(cfg.Driver, cfg.DSN)
+	db, err := sqlinfra.Open(cfg.DB.Driver, cfg.DB.DSN)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -28,7 +24,7 @@ func main() {
 	svc := usecase.ReportService{
 		Executor: db,
 		Filler:   template.XLSXFiller{}, // or DOCXFiller depending on template
-		Storage:  storage.S3Storage{BasePath: "./templates"},
+		Storage:  storage.S3Storage{BasePath: cfg.Storage.BasePath},
 		Reports:  sqlinfra.ReportRepository{DB: db.DB},
 	}
 
