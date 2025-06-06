@@ -4,15 +4,28 @@ import (
 	"context"
 	"log"
 
-	"report_srv/internal/infrastructure/sql"
+	"report_srv/internal/config"
+	sqlinfra "report_srv/internal/infrastructure/sql"
 	"report_srv/internal/infrastructure/template"
 	"report_srv/internal/usecase"
 )
 
 func main() {
-	// This is a stub main demonstrating wiring of the service.
+	// Example configuration. In real application this would be loaded from
+	// file or environment.
+	cfg := config.Config{
+		Driver: "postgres",
+		DSN:    "postgres://user:pass@localhost/db?sslmode=disable",
+	}
+
+	db, err := sqlinfra.Open(cfg.Driver, cfg.DSN)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
 	svc := usecase.ReportService{
-		Executor: &sql.DB{},             // TODO: initialize with actual *sql.DB
+		Executor: db,
 		Filler:   template.XLSXFiller{}, // or DOCXFiller depending on template
 	}
 

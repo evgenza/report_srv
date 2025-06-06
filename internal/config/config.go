@@ -2,5 +2,6 @@ package config
 
 // Config represents application configuration.
 type Config struct {
-	DSN string // database connection string
+	Driver string // name of SQL driver, e.g. "postgres", "mysql"
+	DSN    string // database connection string
 }
