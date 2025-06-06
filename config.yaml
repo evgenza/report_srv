@@ -1,0 +1,7 @@
+server:
+  address: ":8080"
+database:
+  driver: postgres
+  dsn: postgres://user:pass@localhost:5432/dbname?sslmode=disable
+storage:
+  basepath: ./templates
