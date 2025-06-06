@@ -1,25 +1,51 @@
 version: '3.8'
+
 services:
-  db:
-    image: postgres:15
+  postgres:
+    image: postgres:15-alpine
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: dbname
+    ports:
+      - "5432:5432"
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
+
+  localstack:
+    image: localstack/localstack:latest
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=s3
+      - DEBUG=1
+      - DATA_DIR=/tmp/localstack/data
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    volumes:
+      - localstack_data:/tmp/localstack
+      - "/var/run/docker.sock:/var/run/docker.sock"
+
   app:
-    build: .
-    depends_on:
-      - db
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
     environment:
-      APP_DATABASE_DRIVER: ${APP_DATABASE_DRIVER}
-      APP_DATABASE_DSN: ${APP_DATABASE_DSN}
-      APP_STORAGE_BASEPATH: ${APP_STORAGE_BASEPATH}
-      APP_SERVER_ADDRESS: ${APP_SERVER_ADDRESS}
-    volumes:
-      - ./config.yaml:/app/config.yaml
-      - ./templates:${APP_STORAGE_BASEPATH}
-    command: ["./report"]
+      - APP_DATABASE_DRIVER=postgres
+      - APP_DATABASE_DSN=postgres://user:pass@postgres:5432/dbname?sslmode=disable
+      - APP_STORAGE_TYPE=s3
+      - APP_STORAGE_S3_REGION=us-east-1
+      - APP_STORAGE_S3_BUCKET=report-srv-bucket
+      - APP_STORAGE_S3_ENDPOINT=http://localstack:4566
+      - APP_STORAGE_S3_ACCESS_KEY=test
+      - APP_STORAGE_S3_SECRET_KEY=test
+      - APP_SERVER_ADDRESS=:8080
+      - APP_SERVER_DEBUG=true
+    depends_on:
+      - postgres
+      - localstack
+
 volumes:
-  db_data:
+  postgres_data:
+  localstack_data:

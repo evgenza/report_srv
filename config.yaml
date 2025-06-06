@@ -1,7 +1,22 @@
 server:
   address: ":8080"
+  debug: true
+
 database:
   driver: postgres
   dsn: postgres://user:pass@localhost:5432/dbname?sslmode=disable
+
 storage:
-  basepath: ./templates
+  type: s3
+  s3:
+    region: us-east-1
+    bucket: report-srv-bucket
+    endpoint: http://localhost:4566  # LocalStack endpoint for local development
+    access_key: test
+    secret_key: test
+  local:
+    basepath: ./templates
+
+logging:
+  level: debug
+  format: json
