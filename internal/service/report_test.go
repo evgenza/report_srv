@@ -4,9 +4,12 @@ import (
 	"context"
 	"io"
 	"testing"
+	"time"
 
 	"report_srv/internal/models"
+	"report_srv/internal/storage"
 
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"gorm.io/driver/sqlite"
@@ -43,6 +46,52 @@ func (m *MockStorage) JoinPath(elem ...string) string {
 	return args.String(0)
 }
 
+func (m *MockStorage) Exists(ctx context.Context, key string) (bool, error) {
+	args := m.Called(ctx, key)
+	return args.Bool(0), args.Error(1)
+}
+
+func (m *MockStorage) GetMetadata(ctx context.Context, key string) (*storage.FileMetadata, error) {
+	args := m.Called(ctx, key)
+	return args.Get(0).(*storage.FileMetadata), args.Error(1)
+}
+
+func (m *MockStorage) GetSize(ctx context.Context, key string) (int64, error) {
+	args := m.Called(ctx, key)
+	return args.Get(0).(int64), args.Error(1)
+}
+
+func (m *MockStorage) GetPresignedURL(ctx context.Context, key string, expiration time.Duration) (string, error) {
+	args := m.Called(ctx, key, expiration)
+	return args.String(0), args.Error(1)
+}
+
+func (m *MockStorage) List(ctx context.Context, prefix string) ([]storage.FileInfo, error) {
+	args := m.Called(ctx, prefix)
+	return args.Get(0).([]storage.FileInfo), args.Error(1)
+}
+
+func (m *MockStorage) Copy(ctx context.Context, srcKey, dstKey string) error {
+	args := m.Called(ctx, srcKey, dstKey)
+	return args.Error(0)
+}
+
+func (m *MockStorage) Move(ctx context.Context, srcKey, dstKey string) error {
+	args := m.Called(ctx, srcKey, dstKey)
+	return args.Error(0)
+}
+
+func (m *MockStorage) ValidateKey(key string) error {
+	args := m.Called(key)
+	return args.Error(0)
+}
+
+func setupTestLogger() *logrus.Logger {
+	logger := logrus.New()
+	logger.SetLevel(logrus.DebugLevel)
+	return logger
+}
+
 func setupTestDB(t *testing.T) *gorm.DB {
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	assert.NoError(t, err)
@@ -56,7 +105,8 @@ func setupTestDB(t *testing.T) *gorm.DB {
 func TestCreateReport(t *testing.T) {
 	db := setupTestDB(t)
 	mockStorage := new(MockStorage)
-	service := NewReportService(db, mockStorage)
+	logger := setupTestLogger()
+	service := NewReportServiceFromDB(db, mockStorage, logger)
 
 	report := &models.Report{
 		Title:       "Test Report",
@@ -74,7 +124,8 @@ func TestCreateReport(t *testing.T) {
 func TestGetReport(t *testing.T) {
 	db := setupTestDB(t)
 	mockStorage := new(MockStorage)
-	service := NewReportService(db, mockStorage)
+	logger := setupTestLogger()
+	service := NewReportServiceFromDB(db, mockStorage, logger)
 
 	// Create a test report
 	report := &models.Report{
@@ -97,7 +148,8 @@ func TestGetReport(t *testing.T) {
 func TestListReports(t *testing.T) {
 	db := setupTestDB(t)
 	mockStorage := new(MockStorage)
-	service := NewReportService(db, mockStorage)
+	logger := setupTestLogger()
+	service := NewReportServiceFromDB(db, mockStorage, logger)
 
 	// Create test reports
 	reports := []models.Report{
@@ -123,15 +175,17 @@ func TestListReports(t *testing.T) {
 	}
 
 	// Test listing reports
-	retrieved, err := service.ListReports(context.Background())
+	params := ListReportParams{Page: 1, PageSize: 10}
+	result, err := service.ListReports(context.Background(), params)
 	assert.NoError(t, err)
-	assert.Len(t, retrieved, 2)
+	assert.Len(t, result.Reports, 2)
 }
 
 func TestDeleteReport(t *testing.T) {
 	db := setupTestDB(t)
 	mockStorage := new(MockStorage)
-	service := NewReportService(db, mockStorage)
+	logger := setupTestLogger()
+	service := NewReportServiceFromDB(db, mockStorage, logger)
 
 	// Create a test report
 	report := &models.Report{
